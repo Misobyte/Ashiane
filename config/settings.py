@@ -31,12 +31,19 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    ## Django apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
+    ## Internal Apps
+    "accounts.apps.AccountsConfig",
+
+    ## Extensions
+    "phonenumber_field",
 ]
 
 MIDDLEWARE = [
@@ -121,3 +128,10 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+"""
+custom setting for other extensions
+"""
+
+PHONENUMBER_DEFAULT_REGION = 'IR'
