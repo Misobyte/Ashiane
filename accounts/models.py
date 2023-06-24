@@ -43,3 +43,16 @@ class User(AbstractBaseUser):
     
     def __str__(self):
         return self.phone_number
+
+
+class OtpCode(models.Model):
+    phone_number = PhoneNumberField(_("شماره تلفن"))
+    code = models.PositiveSmallIntegerField()
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.phone_number} - {self.code}"
+    
+    class Meta:
+        verbose_name = _("کد فعال سازی")
+        verbose_name_plural = _("کد های فعال سازی")
