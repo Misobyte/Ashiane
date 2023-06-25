@@ -1,8 +1,9 @@
-from django.contrib.auth.models  import AbstractBaseUser
-from django.db                   import models
-from django.utils.translation    import gettext_lazy as _
-from django.utils                import timezone
-from django.conf                 import settings
+from django.contrib.auth.models      import AbstractBaseUser
+from django.contrib.auth.validators  import UnicodeUsernameValidator
+from django.db                       import models
+from django.utils.translation        import gettext_lazy as _
+from django.utils                    import timezone
+from django.conf                     import settings
 
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -13,9 +14,29 @@ from datetime import datetime
 # Create your models here.
 
 
+username_validator = UnicodeUsernameValidator()
+
+
 class PendingUser(models.Model):
-    phone_number = PhoneNumberField(_("شماره تلفن"), unique=True)
-    full_name = models.CharField(_("نام و نام خانوادگی"), max_length=60, blank=True, null=True)
+    AUTH_METHOD_CHOICES = (
+        ("number", "شماره تلفن"),
+        ("email", "ایمیل")
+    )
+    auth_method = models.CharField(max_length=6, choices=AUTH_METHOD_CHOICES, null=True)
+    username = models.CharField(
+        _("نام کاربری"),
+        max_length=60,
+        primary_key=True,
+        help_text=_(
+            _("حداکثر ۶۰ حرف و فقط حروف و اعداد و غیره.")
+        ),
+        validators=[username_validator],
+        error_messages={
+            "unique": _("A user with that username already exists."),
+        },
+    )
+    phone_number = PhoneNumberField(_("شماره تلفن"), blank=True, null=True, unique=True)
+    email = models.EmailField(_("آدرس ایمیل"), blank=True, null=True, unique=True)
     created_at = models.DateTimeField(_("تاریخ ثبت"), auto_now_add=True)
     otp_code = models.CharField(max_length=8, null=True)
     password = models.CharField(max_length=255, null=True)
@@ -37,9 +58,20 @@ class PendingUser(models.Model):
         return True
 
 class User(AbstractBaseUser):
-    phone_number = PhoneNumberField(_("شماره تلفن"), unique=True)
+    username = models.CharField(
+        _("نام کاربری"),
+        max_length=60,
+        primary_key=True,
+        help_text=_(
+            "Required. 60 characters or fewer. Letters, digits and @/./+/-/_ only."
+        ),
+        validators=[username_validator],
+        error_messages={
+            "unique": _("A user with that username already exists."),
+        },
+    )
+    phone_number = PhoneNumberField(_("شماره تلفن"), unique=True, null=True, blank=True)
     email = models.EmailField(_("آدرس ایمیل"), blank=True, null=True, unique=True)
-    full_name = models.CharField(_("نام و نام خانوادگی"), max_length=60, blank=True, null=True)
 
     is_active = models.BooleanField(_("فعال"), default=False)
     is_admin = models.BooleanField(_("ادمین"), default=False)
@@ -50,9 +82,9 @@ class User(AbstractBaseUser):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'phone_number'
+    USERNAME_FIELD = 'username'
 
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['phone_number']
 
 
     @property

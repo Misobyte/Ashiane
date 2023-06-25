@@ -2,8 +2,7 @@ from django                       import forms
 from django.core.exceptions       import ValidationError
 from django.utils.translation     import gettext_lazy as _
 from django.contrib.auth          import get_user_model, password_validation
-from django.contrib.auth.forms    import UserChangeForm as BaseUserChangeForm, BaseUserCreationForm
-from django.contrib.auth.hashers  import make_password
+from django.contrib.auth.forms    import UserChangeForm as BaseUserChangeForm, BaseUserCreationForm, UsernameField
 
 from phonenumber_field.formfields import PhoneNumberField
 
@@ -15,9 +14,22 @@ User = get_user_model()
 class AdminUserCreationForm(BaseUserCreationForm):
     phone_number = PhoneNumberField(label="شماره تلفن")
 
+    password = forms.CharField(
+        label=_("Password"),
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    password_repeat = forms.CharField(
+        label=_("Password confirmation"),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        strip=False,
+        help_text=_("Enter the same password as before, for verification."),
+    )
+
     class Meta(BaseUserCreationForm.Meta):
         model = User
-        fields = ('phone_number', 'full_name')
+        fields = ('username', 'phone_number', 'password')
+        field_classes = {'username': UsernameField}
 
 class AdminUserChangeForm(BaseUserChangeForm):
     pass
@@ -63,7 +75,8 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
 
     class Meta:
         model = PendingUser
-        fields = ["phone_number", "full_name", "password"]
+        fields = ["username", "phone_number", "password"]
+        field_classes = {'username': UsernameField}
     
     def _post_clean(self):
         super()._post_clean()
@@ -101,6 +114,6 @@ class OtpVerificationForm(forms.Form):
     def create(self):
         otp = self.cleaned_data.pop('otp')
         pending_user = self.cleaned_data.pop('pending_user')
-        user = User.objects.create_user_with_phone(phone_number=pending_user.phone_number, password=pending_user.password, full_name=pending_user.full_name)
+        user = User.objects.create_user_with_phone(username=pending_user.username, phone_number=pending_user.phone_number, password=pending_user.password)
         pending_user.delete()
         return user

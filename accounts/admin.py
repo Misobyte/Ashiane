@@ -8,7 +8,7 @@ from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 @admin.register(PendingUser)
 class PendingUserAdmin(admin.ModelAdmin):
-    list_display = ['otp_code', 'phone_number', 'created_at', 'is_valid']
+    list_display = ["username", "otp_code", "phone_number", "created_at", "is_valid"]
 
 class UserAdmin(admin.ModelAdmin):
     form = AdminUserChangeForm
@@ -18,11 +18,11 @@ class UserAdmin(admin.ModelAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("phone_number", "full_name", "password1", "password2"),
+                "fields": ("phone_number", "username", "password1", "password2"),
             },
         ),
     )
-    list_display = ("phone_number", "email", "full_name", "is_staff")
+    list_display = ("username", "phone_number", "email", "is_staff")
 
     def get_fieldsets(self, request, obj=None):
         if not obj:
