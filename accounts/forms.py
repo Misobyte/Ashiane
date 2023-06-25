@@ -67,33 +67,33 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
     
     def _post_clean(self):
         super()._post_clean()
-        if User.objects.filter(phone_number__iexact=self.cleaned_data['phone_number']).exists():
+        if User.objects.filter(phone_number__iexact=self.cleaned_data.get('phone_number')).exists():
             self.add_error("phone_number", "کاربر با این شماره تلفن وجود دارد ، لطفا شماره دیگری را امتحان کنید .")
     
     def save(self, commit):
         instance = super(UserPhoneNumberRegistrationForm, self).save(commit=False)
         otp = generate_otp_code()
         instance.otp_code = otp
-        instance.password = self.cleaned_data['password']
+        instance.password = self.cleaned_data.get('password')
         if commit:
             instance.save()
-            send_otp_code(self.cleaned_data['phone_number'], otp)
+            send_otp_code(self.cleaned_data.get('phone_number'), otp)
         return instance
 
 
 class OtpVerificationForm(forms.Form):
     otp = forms.CharField(required=True, label="کد فعال سازی")
-    phone_number = PhoneNumberField(label="شماره تلفن", help_text="شماره تلفنی که کد فعال سازی به آن ارسال شد")
+    phone_number = PhoneNumberField(label="شماره تلفن", help_text="شماره تلفنی که کد فعال سازی به آن ارسال شد", required=True)
 
     def _post_clean(self):
         super()._post_clean()
         pending_user = PendingUser.objects.filter(
-            phone_number=self.cleaned_data['phone_number'], 
-            otp_code=self.cleaned_data['otp']
+            phone_number=self.cleaned_data.get('phone_number'), 
+            otp_code=self.cleaned_data.get('otp')
         ).first()
         self.cleaned_data['pending_user'] = pending_user
         if not pending_user:
-            self.add_error('non_field_error', 'کد فعال سازی یا شماره تلفن اشتباه وارد شده')
+            self.add_error('otp', 'کد فعال سازی یا شماره تلفن اشتباه وارد شده')
         elif not pending_user.is_valid():
             pending_user.delete()
             self.add_error('otp', 'کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید')
