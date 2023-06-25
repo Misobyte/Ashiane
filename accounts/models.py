@@ -48,8 +48,8 @@ class PendingUser(models.Model):
     def __str__(self):
         return f"{str(self.phone_number)} {self.otp_code}"
     
-    def is_valid(self) -> bool:
-        lifespan_in_seconds = float(settings.OTP_EXPIRE_TIME * 60)
+    def is_valid(self, exp_time=settings.OTP_EXPIRE_TIME) -> bool:
+        lifespan_in_seconds = float(exp_time * 60)
         now = datetime.now(timezone.get_current_timezone())
         time_diff = now - self.created_at
         time_diff = time_diff.total_seconds()
@@ -102,4 +102,4 @@ class User(AbstractBaseUser):
         return True
     
     def __str__(self):
-        return self.phone_number.as_e164
+        return self.username

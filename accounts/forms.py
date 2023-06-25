@@ -3,6 +3,7 @@ from django.core.exceptions       import ValidationError
 from django.utils.translation     import gettext_lazy as _
 from django.contrib.auth          import get_user_model, password_validation
 from django.contrib.auth.forms    import UserChangeForm as BaseUserChangeForm, BaseUserCreationForm, UsernameField
+from django.db.models             import Q
 
 from phonenumber_field.formfields import PhoneNumberField
 
@@ -77,8 +78,11 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
         model = PendingUser
         fields = ["username", "phone_number", "password"]
         field_classes = {'username': UsernameField}
-    
+
     def _post_clean(self):
+        data = PendingUser.objects.filter(Q(username=self.cleaned_data.get('username')) | Q(phone_number=self.cleaned_data.get('phone_numebr')))
+        if data.exists():
+            data.delete()
         super()._post_clean()
         if User.objects.filter(phone_number__iexact=self.cleaned_data.get('phone_number')).exists():
             self.add_error("phone_number", "کاربر با این شماره تلفن وجود دارد ، لطفا شماره دیگری را امتحان کنید .")

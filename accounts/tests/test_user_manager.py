@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 
 # Create your tests here.
 
-class CustomUserTestCase(TestCase):
+class UserManagerTestCase(TestCase):
     def test_user_create(self):
         User = get_user_model()
         user = User.objects.create(
@@ -37,5 +37,3 @@ class CustomUserTestCase(TestCase):
         self.assertFalse(admin_user.phone_number_verified)
         self.assertTrue(admin_user.is_admin)
         self.assertTrue(admin_user.is_active)
-
-
