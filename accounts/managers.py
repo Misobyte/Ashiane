@@ -13,7 +13,11 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
     
+    def create_user_with_phone(self, phone_number, password, **extra_fields):
+        self.create_user(phone_number=phone_number, password=password, email="", is_active=True, phone_number_verified=True, **extra_fields)
+    
     def create_superuser(self, phone_number, email=None, password=None, **extra_fields):
         extra_fields.setdefault("is_admin", True)
+        extra_fields.setdefault("is_active", True)
 
         return self.create_user(phone_number, email, password, **extra_fields)

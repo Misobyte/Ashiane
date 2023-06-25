@@ -8,7 +8,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 from .managers import UserManager
 
-import datetime
+from datetime import datetime
 
 # Create your models here.
 
@@ -20,10 +20,12 @@ class PendingUser(models.Model):
     otp_code = models.CharField(max_length=8, null=True)
     password = models.CharField(max_length=255, null=True)
 
-
+    class Meta:
+        verbose_name = "کاربر در انتظار"
+        verbose_name_plural = "کاربران در انتظار"
 
     def __str__(self):
-        return f"{str(self.phone)} {self.verification_code}"
+        return f"{str(self.phone_number)} {self.otp_code}"
     
     def is_valid(self) -> bool:
         lifespan_in_seconds = float(settings.OTP_EXPIRE_TIME * 60)
@@ -68,17 +70,4 @@ class User(AbstractBaseUser):
         return True
     
     def __str__(self):
-        return self.phone_number
-
-
-class OtpCode(models.Model):
-    phone_number = PhoneNumberField(_("شماره تلفن"))
-    code = models.PositiveSmallIntegerField()
-    created = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.phone_number} - {self.code}"
-    
-    class Meta:
-        verbose_name = _("کد فعال سازی")
-        verbose_name_plural = _("کد های فعال سازی")
+        return self.phone_number.as_e164
