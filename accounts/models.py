@@ -82,9 +82,9 @@ class User(AbstractBaseUser):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = "username"
 
-    REQUIRED_FIELDS = ['phone_number']
+    REQUIRED_FIELDS = ["phone_number"]
 
 
     @property
@@ -92,8 +92,8 @@ class User(AbstractBaseUser):
         return self.is_admin
 
     class Meta:
-        verbose_name = _('کاربر')
-        verbose_name_plural = _('کاربران')
+        verbose_name = _("کاربر")
+        verbose_name_plural = _("کاربران")
     
     def has_module_perms(self, app_label):
         return True

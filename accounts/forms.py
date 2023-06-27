@@ -29,8 +29,8 @@ class AdminUserCreationForm(BaseUserCreationForm):
 
     class Meta(BaseUserCreationForm.Meta):
         model = User
-        fields = ('username', 'phone_number', 'password')
-        field_classes = {'username': UsernameField}
+        fields = ("username", "phone_number", "password")
+        field_classes = {"username": UsernameField}
 
 class AdminUserChangeForm(BaseUserChangeForm):
     pass
@@ -77,24 +77,23 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
     class Meta:
         model = PendingUser
         fields = ["username", "phone_number", "password"]
-        field_classes = {'username': UsernameField}
+        field_classes = {"username": UsernameField}
 
     def _post_clean(self):
-        data = PendingUser.objects.filter(Q(username=self.cleaned_data.get('username')) | Q(phone_number=self.cleaned_data.get('phone_numebr')))
+        data = PendingUser.objects.filter(Q(username=self.cleaned_data.get("username")) | Q(phone_number=self.cleaned_data.get("phone_numebr")))
         if data.exists():
-            data.delete()
+            data.first().delete()
         super()._post_clean()
-        if User.objects.filter(phone_number__iexact=self.cleaned_data.get('phone_number')).exists():
-            self.add_error("phone_number", "کاربر با این شماره تلفن وجود دارد ، لطفا شماره دیگری را امتحان کنید .")
     
     def save(self, commit):
         instance = super(UserPhoneNumberRegistrationForm, self).save(commit=False)
         otp = generate_otp_code()
         instance.otp_code = otp
-        instance.password = self.cleaned_data.get('password')
+        instance.password = self.cleaned_data.get("password")
+        instance.auth_method = "number"
         if commit:
             instance.save()
-            send_otp_code(self.cleaned_data.get('phone_number'), otp)
+            send_otp_code(self.cleaned_data.get("phone_number"), otp)
         return instance
 
 
@@ -104,20 +103,32 @@ class OtpVerificationForm(forms.Form):
 
     def _post_clean(self):
         super()._post_clean()
+        pn = self.cleaned_data.get("phone_number")
+        if self.pending_user:
+            pn = self.pending_user.phone_number
         pending_user = PendingUser.objects.filter(
-            phone_number=self.cleaned_data.get('phone_number'), 
-            otp_code=self.cleaned_data.get('otp')
+            phone_number=pn, 
+            otp_code=self.cleaned_data.get("otp")
         ).first()
-        self.cleaned_data['pending_user'] = pending_user
+        self.cleaned_data["pending_user"] = pending_user
         if not pending_user:
-            self.add_error('otp', 'کد فعال سازی یا شماره تلفن اشتباه وارد شده')
+            self.add_error("otp", "کد فعال سازی یا شماره تلفن اشتباه وارد شده")
         elif not pending_user.is_valid():
             pending_user.delete()
-            self.add_error('otp', 'کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید')
+            self.add_error("otp", "کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید")
     
     def create(self):
-        otp = self.cleaned_data.pop('otp')
-        pending_user = self.cleaned_data.pop('pending_user')
+        pending_user = self.cleaned_data.pop("pending_user")
         user = User.objects.create_user_with_phone(username=pending_user.username, phone_number=pending_user.phone_number, password=pending_user.password)
         pending_user.delete()
         return user
+    
+    def __init__(self, pending_username, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        pending_username = pending_username
+        pending_user = PendingUser.objects.filter(username=pending_username)
+        if pending_user.exists():
+            self.pending_user = pending_user.first()
+            del self.fields["phone_number"]
+        else:
+            self.pending_user = None
