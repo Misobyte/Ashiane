@@ -33,27 +33,29 @@ class PhoneNumberRegisterView(View):
 class OtpCodeVerificationView(View):
     form_class = OtpVerificationForm
 
+    def setup(self, request, *args, **kwargs):
+        self.otp_id = request.session.get("otp-verify-id", None)
+        return super().setup(request, *args, **kwargs)
+
     def dispatch(self, request, *args, **kwargs):
-        otp_id = request.session.get("otp-verify-id", None)
-        if not otp_id:
+        if not self.otp_id:
             messages.error(request, "شما برای دسترسی به این صفحه نیاز به ثبت نام دارید")
             return redirect("accounts:register")
-        elif not PendingUser.objects.filter(id=otp_id).exists():
+        elif not PendingUser.objects.filter(id=self.otp_id).exists():
             messages.error(request, "کد فعال سازی منقضی شده ، دوباره ثبت نام کنید .")
+            # del request.session["otp-verify-id"]
             return redirect("accounts:register")
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        print(request.session.get("otp-verify-id"))
-        form = self.form_class(otp_id=request.session.get("otp-verify-id", None))
+        form = self.form_class(request=request, otp_id=self.otp_id)
         return render(request, "accounts/register/verify_phone.html", {"form": form})
     
     def post(self, request):
-        form = self.form_class(otp_id=request.session.get("otp-verify-id", None), data=request.POST)
+        print(self.otp_id)
+        form = self.form_class(request=request, otp_id=self.otp_id, data=request.POST)
         if form.is_valid():
             form.create()
         else:
-            if "کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید" in form.errors["otp"]:
-                del request.session["otp-verify-id"]
             return render(request, "accounts/register/verify_phone.html", {"form": form}, status=400)
         return redirect("accounts:register")

@@ -84,7 +84,7 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
         data = super().clean()
         queryset = User.objects.filter(Q(username=data.get("username")) | Q(phone_number=data.get("phone_number")))
         if queryset.exists():
-            raise ValidationError("کاربر با این شماره تلفن یا نام کاربری موجود است لطفا اطلاعات متفاوتی را انتخاب کنید.")
+            raise ValidationError("کاربر با این شماره تلفن یا نام کاربری موجود است لطفا اطلاعات دیگری وارد کنید.")
 
     def _post_clean(self):
         data = PendingUser.objects.filter(Q(username=self.cleaned_data.get("username")) | Q(phone_number=self.cleaned_data.get("phone_number")))
@@ -109,17 +109,13 @@ class OtpVerificationForm(forms.Form):
 
     def _post_clean(self):
         super()._post_clean()
-        pn = self.pending_user.phone_number
-        pending_user = PendingUser.objects.filter(
-            phone_number=pn, 
-            otp_code=self.cleaned_data.get("otp")
-        ).first()
-        self.cleaned_data["pending_user"] = pending_user
-        if not pending_user:
-            self.add_error("otp", "کد فعال سازی یا شماره تلفن اشتباه وارد شده")
-        elif not pending_user.is_valid():
-            pending_user.delete()
-            messages.error("کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید")
+        id = self.pending_user.id
+        if not self.pending_user.otp_code == self.cleaned_data.get("otp"):
+            self.add_error("otp", "کد فعال سازی اشتباه وارد شده")
+        elif not self.pending_user.is_valid():
+            self.pending_user.delete()
+            del self.request.session['otp-verify-id']
+            messages.error(self.request, "کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید")
     
     def create(self):
         pending_user = self.cleaned_data.pop("pending_user")
@@ -127,6 +123,7 @@ class OtpVerificationForm(forms.Form):
         pending_user.delete()
         return user
     
-    def __init__(self, otp_id, *args, **kwargs):
+    def __init__(self, otp_id, request, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pending_user = PendingUser.objects.filter(id=otp_id).first()
+        self.request = request

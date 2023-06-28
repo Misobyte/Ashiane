@@ -140,4 +140,4 @@ custom setting for other extensions
 
 PHONENUMBER_DEFAULT_REGION = 'IR'
 
-OTP_EXPIRE_TIME = 2
+OTP_EXPIRE_TIME = 1
