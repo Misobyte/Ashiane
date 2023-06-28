@@ -41,10 +41,6 @@ class OtpCodeVerificationView(View):
         if not self.otp_id:
             messages.error(request, "شما برای دسترسی به این صفحه نیاز به ثبت نام دارید")
             return redirect("accounts:register")
-        elif not PendingUser.objects.filter(id=self.otp_id).exists():
-            messages.error(request, "کد فعال سازی منقضی شده ، دوباره ثبت نام کنید .")
-            # del request.session["otp-verify-id"]
-            return redirect("accounts:register")
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):

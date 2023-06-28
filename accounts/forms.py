@@ -113,9 +113,9 @@ class OtpVerificationForm(forms.Form):
         if not self.pending_user.otp_code == self.cleaned_data.get("otp"):
             self.add_error("otp", "کد فعال سازی اشتباه وارد شده")
         elif not self.pending_user.is_valid():
+            self.add_error("otp", "کد فعال سازی منقضی شده دوباره ثبت نام کنید")
             self.pending_user.delete()
             del self.request.session['otp-verify-id']
-            messages.error(self.request, "کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید")
     
     def create(self):
         pending_user = self.cleaned_data.pop("pending_user")
