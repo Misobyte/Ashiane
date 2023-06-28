@@ -8,7 +8,7 @@ from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 @admin.register(PendingUser)
 class PendingUserAdmin(admin.ModelAdmin):
-    list_display = ["username", "otp_code", "phone_number", "created_at", "is_valid"]
+    list_display = ["id", "username", "otp_code", "phone_number", "created_at", "is_valid"]
 
 class UserAdmin(admin.ModelAdmin):
     form = AdminUserChangeForm

@@ -9,7 +9,8 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 from .managers import UserManager
 
-from datetime import datetime
+from uuid      import uuid4 as uuid
+from datetime  import datetime
 
 # Create your models here.
 
@@ -22,11 +23,12 @@ class PendingUser(models.Model):
         ("number", "شماره تلفن"),
         ("email", "ایمیل")
     )
+    id = models.CharField(_("شناسه"), max_length=32, primary_key=True)
     auth_method = models.CharField(max_length=6, choices=AUTH_METHOD_CHOICES, null=True)
     username = models.CharField(
         _("نام کاربری"),
         max_length=60,
-        primary_key=True,
+        unique=True,
         help_text=_(
             _("حداکثر ۶۰ حرف و فقط حروف و اعداد و غیره.")
         ),
@@ -38,8 +40,8 @@ class PendingUser(models.Model):
     phone_number = PhoneNumberField(_("شماره تلفن"), blank=True, null=True, unique=True)
     email = models.EmailField(_("آدرس ایمیل"), blank=True, null=True, unique=True)
     created_at = models.DateTimeField(_("تاریخ ثبت"), auto_now_add=True)
-    otp_code = models.CharField(max_length=8, null=True)
-    password = models.CharField(max_length=255, null=True)
+    otp_code = models.CharField(_("کد فعال سازی"), max_length=8, null=True)
+    password = models.CharField(_("رمز عبور"), max_length=255, null=True)
 
     class Meta:
         verbose_name = "کاربر در انتظار"
@@ -47,6 +49,11 @@ class PendingUser(models.Model):
 
     def __str__(self):
         return f"{str(self.phone_number)} {self.otp_code}"
+    
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.id = uuid().hex
+        return super().save(*args, **kwargs)
     
     def is_valid(self, exp_time=settings.OTP_EXPIRE_TIME) -> bool:
         lifespan_in_seconds = float(exp_time * 60)

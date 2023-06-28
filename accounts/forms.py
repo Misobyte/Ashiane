@@ -106,13 +106,10 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
 
 class OtpVerificationForm(forms.Form):
     otp = forms.CharField(required=True, label="کد فعال سازی")
-    phone_number = PhoneNumberField(label="شماره تلفن", help_text="شماره تلفنی که کد فعال سازی به آن ارسال شد", required=True)
 
     def _post_clean(self):
         super()._post_clean()
-        pn = self.cleaned_data.get("phone_number")
-        if self.pending_user:
-            pn = self.pending_user.phone_number
+        pn = self.pending_user.phone_number
         pending_user = PendingUser.objects.filter(
             phone_number=pn, 
             otp_code=self.cleaned_data.get("otp")
@@ -130,12 +127,6 @@ class OtpVerificationForm(forms.Form):
         pending_user.delete()
         return user
     
-    def __init__(self, pending_username, *args, **kwargs):
+    def __init__(self, otp_id, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        pending_username = pending_username
-        pending_user = PendingUser.objects.filter(username=pending_username)
-        if pending_user.exists():
-            self.pending_user = pending_user.first()
-            del self.fields["phone_number"]
-        else:
-            self.pending_user = None
+        self.pending_user = PendingUser.objects.filter(id=otp_id).first()
