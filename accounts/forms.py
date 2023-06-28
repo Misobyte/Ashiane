@@ -1,6 +1,7 @@
 from django                       import forms
 from django.core.exceptions       import ValidationError
 from django.utils.translation     import gettext_lazy as _
+from django.contrib               import messages
 from django.contrib.auth          import get_user_model, password_validation
 from django.contrib.auth.forms    import UserChangeForm as BaseUserChangeForm, BaseUserCreationForm, UsernameField
 from django.db.models             import Q
@@ -78,9 +79,15 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
         model = PendingUser
         fields = ["username", "phone_number", "password"]
         field_classes = {"username": UsernameField}
+    
+    def clean(self):
+        data = super().clean()
+        queryset = User.objects.filter(Q(username=data.get("username")) | Q(phone_number=data.get("phone_number")))
+        if queryset.exists():
+            raise ValidationError("کاربر با این شماره تلفن یا نام کاربری موجود است لطفا اطلاعات متفاوتی را انتخاب کنید.")
 
     def _post_clean(self):
-        data = PendingUser.objects.filter(Q(username=self.cleaned_data.get("username")) | Q(phone_number=self.cleaned_data.get("phone_numebr")))
+        data = PendingUser.objects.filter(Q(username=self.cleaned_data.get("username")) | Q(phone_number=self.cleaned_data.get("phone_number")))
         if data.exists():
             data.first().delete()
         super()._post_clean()
@@ -115,7 +122,7 @@ class OtpVerificationForm(forms.Form):
             self.add_error("otp", "کد فعال سازی یا شماره تلفن اشتباه وارد شده")
         elif not pending_user.is_valid():
             pending_user.delete()
-            self.add_error("otp", "کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید")
+            messages.error("کد فعال سازی منقضی شده است . لطفا مجددا ثبت نام نمایید")
     
     def create(self):
         pending_user = self.cleaned_data.pop("pending_user")
