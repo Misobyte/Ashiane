@@ -118,9 +118,8 @@ class OtpVerificationForm(forms.Form):
             del self.request.session['otp-verify-id']
     
     def create(self):
-        pending_user = self.cleaned_data.pop("pending_user")
-        user = User.objects.create_user_with_phone(username=pending_user.username, phone_number=pending_user.phone_number, password=pending_user.password)
-        pending_user.delete()
+        user = User.objects.create_user_with_phone(username=self.pending_user.username, phone_number=self.pending_user.phone_number, password=self.pending_user.password)
+        self.pending_user.delete()
         return user
     
     def __init__(self, otp_id, request, *args, **kwargs):

@@ -48,10 +48,10 @@ class OtpCodeVerificationView(View):
         return render(request, "accounts/register/verify_phone.html", {"form": form})
     
     def post(self, request):
-        print(self.otp_id)
         form = self.form_class(request=request, otp_id=self.otp_id, data=request.POST)
         if form.is_valid():
             form.create()
+            del request.session["otp-verify-id"]
         else:
             return render(request, "accounts/register/verify_phone.html", {"form": form}, status=400)
         return redirect("accounts:register")
