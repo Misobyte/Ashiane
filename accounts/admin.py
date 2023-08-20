@@ -1,14 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 
-from .models import User, PendingUser
+from .models import User, OtpCode
 from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 # Register your models here.
 
-@admin.register(PendingUser)
-class PendingUserAdmin(admin.ModelAdmin):
-    list_display = ["id", "username", "otp_code", "phone_number", "created_at", "is_valid"]
+@admin.register(OtpCode)
+class OtpCodeAdmin(admin.ModelAdmin):
+    list_display = ["id", "otp_code", "created_at", "is_valid"]
 
 class UserAdmin(admin.ModelAdmin):
     form = AdminUserChangeForm
@@ -22,7 +22,7 @@ class UserAdmin(admin.ModelAdmin):
             },
         ),
     )
-    list_display = ("username", "phone_number", "email", "is_staff")
+    list_display = ("username", "phone_number", "email", "is_active", "is_staff")
 
     def get_fieldsets(self, request, obj=None):
         if not obj:

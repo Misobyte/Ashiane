@@ -5,7 +5,7 @@ from django.contrib       import messages
 from random import randint
 
 from .forms  import UserPhoneNumberRegistrationForm, OtpVerificationForm
-from .models import PendingUser
+from .models import User
 
 # Create your views here.
 
@@ -23,7 +23,7 @@ class PhoneNumberRegisterView(View):
         form = self.form_class(request.POST)
         if form.is_valid():
             instance = form.save(commit=True)
-            request.session["otp-verify-id"] = instance.id
+            request.session["username"] = instance.username
             messages.success(request, "کد فعال سازی حساب ارسال شد")
             return redirect("accounts:otp-verification")
         else:
@@ -34,24 +34,24 @@ class OtpCodeVerificationView(View):
     form_class = OtpVerificationForm
 
     def setup(self, request, *args, **kwargs):
-        self.otp_id = request.session.get("otp-verify-id", None)
+        self.username = request.session.get("username", None)
         return super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
-        if not self.otp_id:
+        if not self.username:
             messages.error(request, "شما برای دسترسی به این صفحه نیاز به ثبت نام دارید")
             return redirect("accounts:register")
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        form = self.form_class(request=request, otp_id=self.otp_id)
+        form = self.form_class(request=request, username=self.username)
         return render(request, "accounts/register/verify_phone.html", {"form": form})
     
     def post(self, request):
-        form = self.form_class(request=request, otp_id=self.otp_id, data=request.POST)
+        form = self.form_class(request=request, username=self.username, data=request.POST)
         if form.is_valid():
             form.create()
-            del request.session["otp-verify-id"]
+            del request.session["username"]
         else:
             return render(request, "accounts/register/verify_phone.html", {"form": form}, status=400)
         return redirect("accounts:register")

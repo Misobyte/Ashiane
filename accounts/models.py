@@ -18,37 +18,17 @@ from datetime  import datetime
 username_validator = UnicodeUsernameValidator()
 
 
-class PendingUser(models.Model):
-    AUTH_METHOD_CHOICES = (
-        ("number", "شماره تلفن"),
-        ("email", "ایمیل")
-    )
+class OtpCode(models.Model):
     id = models.CharField(_("شناسه"), max_length=32, primary_key=True)
-    auth_method = models.CharField(max_length=6, choices=AUTH_METHOD_CHOICES, null=True)
-    username = models.CharField(
-        _("نام کاربری"),
-        max_length=60,
-        unique=True,
-        help_text=_(
-            _("حداکثر ۶۰ حرف و فقط حروف و اعداد و غیره.")
-        ),
-        validators=[username_validator],
-        error_messages={
-            "unique": _("A user with that username already exists."),
-        },
-    )
-    phone_number = PhoneNumberField(_("شماره تلفن"), blank=True, null=True, unique=True)
-    email = models.EmailField(_("آدرس ایمیل"), blank=True, null=True, unique=True)
     created_at = models.DateTimeField(_("تاریخ ثبت"), auto_now_add=True)
     otp_code = models.CharField(_("کد فعال سازی"), max_length=8, null=True)
-    password = models.CharField(_("رمز عبور"), max_length=255, null=True)
 
     class Meta:
-        verbose_name = "کاربر در انتظار"
-        verbose_name_plural = "کاربران در انتظار"
+        verbose_name = "کد فعال سازی"
+        verbose_name_plural = "کد های فعال سازی"
 
     def __str__(self):
-        return f"{str(self.phone_number)} {self.otp_code}"
+        return f"{self.otp_code}"
     
     def save(self, *args, **kwargs):
         if not self.id:
@@ -65,6 +45,11 @@ class PendingUser(models.Model):
         return True
 
 class User(AbstractBaseUser):
+    AUTH_METHOD_CHOICES = (
+        ("number", "شماره تلفن"),
+        ("email", "ایمیل")
+    )
+
     username = models.CharField(
         _("نام کاربری"),
         max_length=60,
@@ -79,6 +64,7 @@ class User(AbstractBaseUser):
     )
     phone_number = PhoneNumberField(_("شماره تلفن"), unique=True, null=True, blank=True)
     email = models.EmailField(_("آدرس ایمیل"), blank=True, null=True, unique=True)
+    auth_method = models.CharField(max_length=6, choices=AUTH_METHOD_CHOICES, null=True)
 
     is_active = models.BooleanField(_("فعال"), default=False)
     is_admin = models.BooleanField(_("ادمین"), default=False)
@@ -86,6 +72,7 @@ class User(AbstractBaseUser):
 
     email_verfied = models.BooleanField(default=False)
     phone_number_verified = models.BooleanField(default=False)
+    otp_code = models.ForeignKey(OtpCode, blank=True, null=True, related_name="user", on_delete=models.DO_NOTHING)
 
     objects = UserManager()
 

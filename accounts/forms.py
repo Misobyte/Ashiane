@@ -8,7 +8,7 @@ from django.db.models             import Q
 
 from phonenumber_field.formfields import PhoneNumberField
 
-from .models import PendingUser
+from .models import OtpCode, User
 from .utils  import generate_otp_code, send_otp_code
 
 User = get_user_model()
@@ -49,7 +49,7 @@ class UserRegistrationFormBase(forms.ModelForm):
         help_text=_("Enter the same password as before, for verification."),
     )
     class Meta:
-        model = PendingUser
+        model = User
         fields = "__all__"
 
     def clean_password2(self):
@@ -76,26 +76,15 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
     phone_number = PhoneNumberField(label="شماره تلفن")
 
     class Meta:
-        model = PendingUser
+        model = User
         fields = ["username", "phone_number", "password"]
         field_classes = {"username": UsernameField}
-    
-    def clean(self):
-        data = super().clean()
-        queryset = User.objects.filter(Q(username=data.get("username")) | Q(phone_number=data.get("phone_number")))
-        if queryset.exists():
-            raise ValidationError("کاربر با این شماره تلفن یا نام کاربری موجود است لطفا اطلاعات دیگری وارد کنید.")
-
-    def _post_clean(self):
-        data = PendingUser.objects.filter(Q(username=self.cleaned_data.get("username")) | Q(phone_number=self.cleaned_data.get("phone_number")))
-        if data.exists():
-            data.first().delete()
-        super()._post_clean()
     
     def save(self, commit):
         instance = super(UserPhoneNumberRegistrationForm, self).save(commit=False)
         otp = generate_otp_code()
-        instance.otp_code = otp
+        otp_object = OtpCode.objects.create(otp_code=otp)
+        instance.otp_code = otp_object
         instance.password = self.cleaned_data.get("password")
         instance.auth_method = "number"
         if commit:
@@ -109,20 +98,21 @@ class OtpVerificationForm(forms.Form):
 
     def _post_clean(self):
         super()._post_clean()
-        id = self.pending_user.id
-        if not self.pending_user.otp_code == self.cleaned_data.get("otp"):
+        if not self.user.otp_code.otp_code == self.cleaned_data.get("otp"):
             self.add_error("otp", "کد فعال سازی اشتباه وارد شده")
-        elif not self.pending_user.is_valid():
-            self.add_error("otp", "کد فعال سازی منقضی شده دوباره ثبت نام کنید")
-            self.pending_user.delete()
-            del self.request.session['otp-verify-id']
+        elif not self.user.otp_code.is_valid():
+            self.add_error("otp", "کد فعال سازی منقضی شده. دوباره ارسال شد")
+            otp = generate_otp_code()
+            self.user.otp_code.otp_code = otp
     
     def create(self):
-        user = User.objects.create_user_with_phone(username=self.pending_user.username, phone_number=self.pending_user.phone_number, password=self.pending_user.password)
-        self.pending_user.delete()
-        return user
+        self.user.is_active = True
+        if self.user.auth_method == "email":
+            self.user.email_verfied = True,
+        elif self.user.auth_method == "number":
+            self.user.phone_number_verified = True
+        self.user.save()
     
-    def __init__(self, otp_id, request, *args, **kwargs):
+    def __init__(self, username, request, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.pending_user = PendingUser.objects.filter(id=otp_id).first()
-        self.request = request
+        self.user = User.objects.filter(username=username).first()
