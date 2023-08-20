@@ -9,7 +9,7 @@ from django.db.models             import Q
 from phonenumber_field.formfields import PhoneNumberField
 
 from .models import OtpCode, User
-from .utils  import generate_otp_code, send_otp_code
+from .utils  import generate_otp_code, send_otp_code, send_otp_code_email
 
 User = get_user_model()
 
@@ -93,6 +93,28 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
         return instance
 
 
+
+class UserEmailRegistrationForm(UserRegistrationFormBase):
+    email = forms.EmailField(label=_("ایمیل"))
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password"]
+        field_classes = {"username": UsernameField}
+    
+    def save(self, commit):
+        instance = super(UserEmailRegistrationForm, self).save(commit=False)
+        otp = generate_otp_code()
+        otp_object = OtpCode.objects.create(otp_code=otp)
+        instance.otp_code = otp_object
+        instance.password = self.cleaned_data.get("password")
+        instance.auth_method = "email"
+        if commit:
+            instance.save()
+            send_otp_code_email(self.cleaned_data.get("email"), otp)
+        return instance
+
+
 class OtpVerificationForm(forms.Form):
     otp = forms.CharField(required=True, label="کد فعال سازی")
 
@@ -108,7 +130,7 @@ class OtpVerificationForm(forms.Form):
     def create(self):
         self.user.is_active = True
         if self.user.auth_method == "email":
-            self.user.email_verfied = True,
+            self.user.email_verfied = True
         elif self.user.auth_method == "number":
             self.user.phone_number_verified = True
         self.user.save()

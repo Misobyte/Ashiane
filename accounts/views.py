@@ -4,7 +4,7 @@ from django.contrib       import messages
 
 from random import randint
 
-from .forms  import UserPhoneNumberRegistrationForm, OtpVerificationForm
+from .forms  import UserPhoneNumberRegistrationForm, UserEmailRegistrationForm, OtpVerificationForm
 from .models import User
 
 # Create your views here.
@@ -28,6 +28,22 @@ class PhoneNumberRegisterView(View):
             return redirect("accounts:otp-verification")
         else:
             return render(request, "accounts/register/phone_number.html", {"form": form}, status=400)
+
+
+class EmailRegisterView(View):
+    form_class = UserEmailRegistrationForm
+    def get(self, request):
+        form = self.form_class()
+        return render(request, "accounts/register/email.html", {"form": form})
+    def post(self, request):
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            instance = form.save(commit=True)
+            request.session["username"] = instance.username
+            messages.success(request, "کد فعال سازی حساب ارسال شد")
+            return redirect("accounts:otp-verification")
+        else:
+            return render(request, "accounts/register/email.html", {"form": form}, status=400)
 
 
 class OtpCodeVerificationView(View):

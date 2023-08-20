@@ -10,3 +10,6 @@ def generate_otp_code():
 
 def send_otp_code(pn, code):
     print(pn, code)
+
+def send_otp_code_email(pn, code):
+    print(pn, code)
