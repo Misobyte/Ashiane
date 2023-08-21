@@ -1,7 +1,10 @@
-from django.core.mail import send_mail
 import pyotp
 import base64
 import os
+
+from django.core.mail import send_mail
+
+from .models import OtpCode
 
 
 def generate_otp_code():
@@ -9,16 +12,18 @@ def generate_otp_code():
     otp = totp.now()
     return otp
 
-def send_otp_code(pn, code):
-    print(pn, code)
-
-def send_otp_code_email(email, code):
-    send_mail(
-        "کد تایید شما برای وبسایت آشیانه",
-        f"کد تایید: {code}",
-        "Ashiane",
-        [email],
-        fail_silently=False,
-    )
-    print("sent to " + email)
-    print(email, code)
+def send_otp_code(instance):
+    otp = generate_otp_code()
+    otp_object = OtpCode.objects.create(otp_code=otp)
+    instance.otp_code = otp_object
+    if instance.auth_method == "email":
+        send_mail(
+            "کد تایید شما برای وبسایت آشیانه",
+            f"کد تایید: {otp}",
+            "Ashiane",
+            [instance.email],
+            fail_silently=False,
+        )
+    elif instance.auth_method == "number":
+        print(instance.phone_number, otp)
+    return instance

@@ -3,13 +3,14 @@ from django.core.exceptions       import ValidationError
 from django.utils.translation     import gettext_lazy as _
 from django.contrib               import messages
 from django.contrib.auth          import get_user_model, password_validation
-from django.contrib.auth.forms    import UserChangeForm as BaseUserChangeForm, BaseUserCreationForm, UsernameField
+from django.contrib.auth.forms    import UserChangeForm as BaseUserChangeForm, BaseUserCreationForm, UsernameField, AuthenticationForm
+from django.contrib.auth.hashers  import make_password
 from django.db.models             import Q
 
 from phonenumber_field.formfields import PhoneNumberField
 
 from .models import OtpCode, User
-from .utils  import generate_otp_code, send_otp_code, send_otp_code_email
+from .utils  import generate_otp_code, send_otp_code
 
 User = get_user_model()
 
@@ -82,14 +83,11 @@ class UserPhoneNumberRegistrationForm(UserRegistrationFormBase):
     
     def save(self, commit):
         instance = super(UserPhoneNumberRegistrationForm, self).save(commit=False)
-        otp = generate_otp_code()
-        otp_object = OtpCode.objects.create(otp_code=otp)
-        instance.otp_code = otp_object
-        instance.password = self.cleaned_data.get("password")
+        instance.password = make_password(self.cleaned_data.get("password"))
         instance.auth_method = "number"
         if commit:
+            instance = send_otp_code(instance)
             instance.save()
-            send_otp_code(self.cleaned_data.get("phone_number"), otp)
         return instance
 
 
@@ -104,14 +102,11 @@ class UserEmailRegistrationForm(UserRegistrationFormBase):
     
     def save(self, commit):
         instance = super(UserEmailRegistrationForm, self).save(commit=False)
-        otp = generate_otp_code()
-        otp_object = OtpCode.objects.create(otp_code=otp)
-        instance.otp_code = otp_object
-        instance.password = self.cleaned_data.get("password")
+        instance.password = make_password(self.cleaned_data.get("password"))
         instance.auth_method = "email"
         if commit:
+            send_otp_code(instance)
             instance.save()
-            send_otp_code_email(self.cleaned_data.get("email"), otp)
         return instance
 
 

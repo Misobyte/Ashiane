@@ -66,7 +66,7 @@ class User(AbstractBaseUser):
     email = models.EmailField(_("آدرس ایمیل"), blank=True, null=True, unique=True)
     auth_method = models.CharField(max_length=6, choices=AUTH_METHOD_CHOICES, null=True)
 
-    is_active = models.BooleanField(_("فعال"), default=False)
+    is_active = models.BooleanField(_("فعال"), default=True)
     is_admin = models.BooleanField(_("ادمین"), default=False)
     date_joined = models.DateTimeField(_("تاریخ ثبت نام"), auto_now_add=True)
 
@@ -84,6 +84,10 @@ class User(AbstractBaseUser):
     @property
     def is_staff(self):
         return self.is_admin
+
+    @property
+    def is_activated(self):
+        return (self.auth_method == "email" and not self.email) or (self.auth_method == "number" and not self.phone_number)
 
     class Meta:
         verbose_name = _("کاربر")

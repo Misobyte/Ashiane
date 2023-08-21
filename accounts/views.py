@@ -1,11 +1,16 @@
-from django.shortcuts     import render, redirect
-from django.views.generic import View
-from django.contrib       import messages
+from django.contrib            import messages
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.forms import AuthenticationForm
+from django.core.exceptions    import ValidationError
+from django.shortcuts          import render, redirect
+from django.views.generic      import View
+from django.shortcuts          import redirect
 
 from random import randint
 
 from .forms  import UserPhoneNumberRegistrationForm, UserEmailRegistrationForm, OtpVerificationForm
 from .models import User
+from .utils import send_otp_code
 
 # Create your views here.
 
@@ -71,3 +76,18 @@ class OtpCodeVerificationView(View):
         else:
             return render(request, "accounts/register/verify_phone.html", {"form": form}, status=400)
         return redirect("accounts:register")
+
+
+class CustomLoginView(LoginView):
+    form_class = AuthenticationForm
+    template_name = "accounts/login.html"
+
+    def form_valid(self, form):
+        user = form.get_user()
+        if not user.is_activated:
+            user = send_otp_code(user)
+            user.save()
+            self.request.session["username"] = user.username
+            return redirect("accounts:otp-verification")
+        else:
+            return super().form_valid(form)
